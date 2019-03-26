@@ -13,13 +13,13 @@ function enc(data)return ((data:gsub('.',function(x)local r,b='',x:byte()for i=8
 
 local out = enc(string.dump(fn))
 
-local text = "(loadstring or load)(('"..out.."'):gsub('.',function(x)if x=='='then return''end;local r,f='',(('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'):find(x)-1)for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and'1'or'0')end;return r;end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)if #x ~= 8 then return''end;local c=0;for i=1,8 do c=c+(x:sub(i,i)=='1'and 2^(8-i) or 0) end;return string.char(c)end))()"
+local code = "(loadstring or load)(('"..out.."'):gsub('.',function(x)if x=='='then return''end;local r,f='',(('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'):find(x)-1)for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and'1'or'0')end;return r;end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)if #x ~= 8 then return''end;local c=0;for i=1,8 do c=c+(x:sub(i,i)=='1'and 2^(8-i) or 0) end;return string.char(c)end))()"
 
 if outfile then
   local f = assert(io.open(outfile, 'w'))
-  f:write(text)
+  f:write(code)
   f:close()
   print("Written to "..outfile)
 else
-  print(text)
+  print(code)
 end
