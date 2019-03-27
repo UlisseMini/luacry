@@ -1,28 +1,41 @@
+---------------------------- XOR -------------------------------
+local function bxor(a, b)if type(a) ~= "number" then;error("bad argument #1 to 'xor' (number expected, got "..type(a)..")")end;if type(b)~="number"then;error("bad argument #1 to 'xor' (number expected, got "..type(b)..")")end;local r=0;for i=0,31 do;local x=a/2+b/2;if x~=math.floor(x)then;r=r+2^i;end;a=math.floor(a/2)b=math.floor(b/2)end;return r;end
+
+local function xor(s1, s2)if type(s1)~="string"then;error("bad argument #1 to 'xor' (string expected, got "..type(s1)..")")end;if type(s2)~="string"then;error("bad argument #2 to 'xor' (string expected, got "..type(s2)..")")end;local R = ""local i,k;for i=1,#s1 do;k=(i-1)%#s2+1;local b1,b2=s1:byte(i,i),s2:byte(k,k)byte=bxor(b1,b2)R=R..string.char(byte)end;return R;end
+---------------------------- XOR -------------------------------
+
 ---------------------------- BASE64 ----------------------------
 local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-function enc(data)return ((data:gsub('.',function(x)local r,b='',x:byte()for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and'1'or'0')end;return r;end)..'0000'):gsub('%d%d%d?%d?%d?%d?',function(x)if #x < 6 then return''end;local c=0;for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0)end;return b:sub(c+1,c+1)end)..({'','==','='})[#data%3+1])end
+local function enc(data)return ((data:gsub('.',function(x)local r,b='',x:byte()for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and'1'or'0')end;return r;end)..'0000'):gsub('%d%d%d?%d?%d?%d?',function(x)if #x < 6 then return''end;local c=0;for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0)end;return b:sub(c+1,c+1)end)..({'','==','='})[#data%3+1])end
 ---------------------------- BASE64 ----------------------------
 
-function obsf(bytecode)
-  return "(loadstring or load)(('"..bytecode.."'):gsub('.',function(x)if x=='='then return''end;local r,f='',(('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'):find(x)-1)for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and'1'or'0')end;return r;end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)if #x ~= 8 then return''end;local c=0;for i=1,8 do c=c+(x:sub(i,i)=='1'and 2^(8-i) or 0) end;return string.char(c)end))()"
+local function obsf(code, key)
+  local out = [[function bxor(a,b)local c=0;for d=0,31 do local e=a/2+b/2;if e~=math.floor(e)then c=c+2^d end;a=math.floor(a/2)b=math.floor(b/2)end;return c end;function xor(f,g)local h=""local d,i;for d=1,#f do i=(d-1)%#g+1;local j,k=f:byte(d,d),g:byte(i,i)byte=bxor(j,k)h=h..string.char(byte)end;return h end;local a={...}if#a<1 then print'argument #1 must be the key'return end]]
+
+  b64xor = enc(xor(code, key))
+  out = out.."(loadstring or load)(xor(('"..b64xor.."'):gsub('.',function(x)if x=='='then return''end;local r,f='',(('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'):find(x)-1)for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and'1'or'0')end;return r;end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)if #x ~= 8 then return''end;local c=0;for i=1,8 do c=c+(x:sub(i,i)=='1'and 2^(8-i) or 0) end;return string.char(c)end), a[1]))()"
+
+	return out
 end
 
 local args = {...}
-if #args < 1 then
-  print("Usage: luacry.lua <input.lua>")
+if #args < 2 then
+  print("Usage: luacry.lua <input.lua> <key> [output.lua]")
   return
 end
+local key  = args[2]
+local outfile = args[3]
 
-local fn = assert(loadfile(args[1]))
-local bytecode = enc(string.dump(fn))
-local code = obsf(bytecode)
+local f    = assert(io.open(args[1]), 'r')
+local code = f:read('*all'); f:close()
 
-local outfile = args[2]
+local output = obsf(code, key)
+
 if outfile then
   local f = assert(io.open(outfile, 'w'))
-  f:write(code)
+  f:write(output)
   f:close()
   print("Written to "..outfile)
 else
-  print(code)
+  print(output)
 end
